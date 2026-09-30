@@ -6,8 +6,8 @@
 class Badline < Formula
   desc "Cycle-accurate Commodore 64 emulator"
   homepage "https://github.com/elektronaut/badline"
-  url "https://github.com/elektronaut/badline/releases/download/v0.5.1/badline-0.5.1-spinel-7304a08a.tar.gz"
-  sha256 "9967aad8b38b3bea7efffe82414e3a084143d65e0b77096b6af6060ea08c921c"
+  url "https://github.com/elektronaut/badline/releases/download/v0.6.0/badline-0.6.0-spinel-c576e83a.tar.gz"
+  sha256 "6022517209674b06959e3011763cef964e23d128e5507058edecce050fd42b99"
   license "MIT"
 
   depends_on "sdl2"
