@@ -3,17 +3,17 @@
 class Carte < Formula
   desc "Runs your apps' processes on demand behind *.test hostnames"
   homepage "https://github.com/elektronaut/carte"
-  version "0.1.0"
+  version "0.2.0"
   license "MIT"
 
   on_arm do
-    url "https://github.com/elektronaut/carte/releases/download/v0.1.0/carte-0.1.0-aarch64-apple-darwin.tar.gz"
-    sha256 "2fd2b5a18ce1d0cb82bc2af2663aa9fe0806a2e6119bb0bbb3a7fad3c52b28d6"
+    url "https://github.com/elektronaut/carte/releases/download/v0.2.0/carte-0.2.0-aarch64-apple-darwin.tar.gz"
+    sha256 "e6536b30e367c0485f16e4a0fa3269a7ffc7f13994023caae35b02f6537307f9"
   end
 
   on_intel do
-    url "https://github.com/elektronaut/carte/releases/download/v0.1.0/carte-0.1.0-x86_64-apple-darwin.tar.gz"
-    sha256 "c8f83aaaff396ea1903d20fb7dcf133e324b1bffaa764bef1f5f99e1cb09b97f"
+    url "https://github.com/elektronaut/carte/releases/download/v0.2.0/carte-0.2.0-x86_64-apple-darwin.tar.gz"
+    sha256 "9921ee241878c7b71fa911c6162c2f2141a2da5d22793750af19ee8d9591b481"
   end
 
   depends_on :macos
