@@ -3,23 +3,30 @@
 class Carte < Formula
   desc "Runs your apps' processes on demand behind *.test hostnames"
   homepage "https://github.com/elektronaut/carte"
-  version "0.3.0"
+  url "https://github.com/elektronaut/carte/archive/refs/tags/v0.3.0.tar.gz"
+  sha256 "68026581d0e6770e2c2d582f9df867dfe7f6d7462bd74b4514af99bcb2cf1e88"
   license "MIT"
 
-  on_arm do
-    url "https://github.com/elektronaut/carte/releases/download/v0.3.0/carte-0.3.0-aarch64-apple-darwin.tar.gz"
-    sha256 "8f6055464ad009336661088e40787300e02610dbe0037791d72593fe1a04b300"
-  end
-
-  on_intel do
-    url "https://github.com/elektronaut/carte/releases/download/v0.3.0/carte-0.3.0-x86_64-apple-darwin.tar.gz"
-    sha256 "fe18e7597bf5347d1e2306f3e947570db41a93f7b2d29c02aef0ba7c2d0754ed"
+  livecheck do
+    url :stable
+    strategy :github_latest
   end
 
   depends_on :macos
 
+  resource "binary" do
+    on_arm do
+      url "https://github.com/elektronaut/carte/releases/download/v0.3.0/carte-0.3.0-aarch64-apple-darwin.tar.gz"
+      sha256 "8f6055464ad009336661088e40787300e02610dbe0037791d72593fe1a04b300"
+    end
+    on_intel do
+      url "https://github.com/elektronaut/carte/releases/download/v0.3.0/carte-0.3.0-x86_64-apple-darwin.tar.gz"
+      sha256 "fe18e7597bf5347d1e2306f3e947570db41a93f7b2d29c02aef0ba7c2d0754ed"
+    end
+  end
+
   def install
-    bin.install "carte"
+    resource("binary").stage { bin.install "carte" }
   end
 
   def caveats
