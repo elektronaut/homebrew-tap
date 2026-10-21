@@ -3,8 +3,8 @@
 class Carte < Formula
   desc "Runs your apps' processes on demand behind *.test hostnames"
   homepage "https://github.com/elektronaut/carte"
-  url "https://github.com/elektronaut/carte/archive/refs/tags/v0.3.0.tar.gz"
-  sha256 "68026581d0e6770e2c2d582f9df867dfe7f6d7462bd74b4514af99bcb2cf1e88"
+  url "https://github.com/elektronaut/carte/archive/refs/tags/v0.4.0.tar.gz"
+  sha256 "a1290bfd8c8b70cf2a76de99813b54d49c21f45be9d29e5261ea6a68bd046885"
   license "MIT"
 
   livecheck do
@@ -16,12 +16,12 @@ class Carte < Formula
 
   resource "binary" do
     on_arm do
-      url "https://github.com/elektronaut/carte/releases/download/v0.3.0/carte-0.3.0-aarch64-apple-darwin.tar.gz"
-      sha256 "8f6055464ad009336661088e40787300e02610dbe0037791d72593fe1a04b300"
+      url "https://github.com/elektronaut/carte/releases/download/v0.4.0/carte-0.4.0-aarch64-apple-darwin.tar.gz"
+      sha256 "4f61df53f002c892522c2ce47e7dfa35503f0218efc5c800f2a45a8648d95f26"
     end
     on_intel do
-      url "https://github.com/elektronaut/carte/releases/download/v0.3.0/carte-0.3.0-x86_64-apple-darwin.tar.gz"
-      sha256 "fe18e7597bf5347d1e2306f3e947570db41a93f7b2d29c02aef0ba7c2d0754ed"
+      url "https://github.com/elektronaut/carte/releases/download/v0.4.0/carte-0.4.0-x86_64-apple-darwin.tar.gz"
+      sha256 "36f07fedcf7a1e57214be3e68e0846e32f9d387281f13b38f1fc42e271f7e20c"
     end
   end
 
