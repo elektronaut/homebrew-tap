@@ -10,6 +10,12 @@ class Badline < Formula
   sha256 "d5b63a0f389d9340607c65ff43526e4621ecf5217249edc07e1c723a056302ca"
   license "MIT"
 
+  bottle do
+    root_url "https://github.com/elektronaut/homebrew-tap/releases/download/badline-0.18.0"
+    sha256 cellar: :any, arm64_sequoia: "98c2e3a7faaa85d264b78c5a45bd420955a1c5ac1643eabca05bd6364161fe08"
+    sha256 cellar: :any, x86_64_linux:  "44dbc843884f8ffed881589204ae6868df7bb09313d96e8fdd2a0a0d0bafe10d"
+  end
+
   depends_on "sdl2"
 
   uses_from_macos "libxcrypt"
