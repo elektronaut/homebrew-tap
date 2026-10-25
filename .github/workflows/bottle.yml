@@ -1,0 +1,181 @@
+# Builds badline's bottles whenever its formula changes on main without a
+# bottle block (badline's release workflow pushes each new version without
+# one), uploads them to a `badline-<version>` release in this repository and
+# commits the bottle block. Without a bottle for their platform, users build
+# from source as before.
+#
+# The bottle commit is pushed with GITHUB_TOKEN, which starts no workflows,
+# so it doesn't run this one again. A pull request that changes this file
+# builds the bottles without publishing them.
+name: brew bottle
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Formula/badline.rb
+  pull_request:
+    paths:
+      - .github/workflows/bottle.yml
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+# A newer formula supersedes bottles still being built for an older one.
+concurrency:
+  group: bottle-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: true
+
+env:
+  FORMULA: elektronaut/tap/badline
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      bottle: ${{ steps.check.outputs.bottle }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: check
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != pull_request ]] && grep -q '^  bottle do$' Formula/badline.rb
+          then
+            echo "The formula is already bottled." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "bottle=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "bottle=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.bottle == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # A bottle serves its macOS version and every later one, and
+          # Sequoia is the oldest Tier 1 macOS on Apple Silicon.
+          - os: macos-15
+          - os: ubuntu-latest
+            container:
+              image: ghcr.io/homebrew/brew:main
+              options: --privileged
+    runs-on: ${{ matrix.os }}
+    container: ${{ fromJSON(toJSON(matrix.container)) }} # zizmor: ignore[unpinned-images]
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_RENDER_DRIVER: software
+      SDL_AUDIODRIVER: dummy
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878 # 2026.10.19.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: brew install --build-bottle "$FORMULA"
+
+      - name: Test
+        run: brew test --verbose "$FORMULA"
+
+      - name: Bottle
+        run: |
+          pkg_version=$(brew ruby -e "puts Formula['$FORMULA'].pkg_version")
+          mkdir bottles
+          cd bottles
+          brew bottle --json --no-rebuild \
+            --root-url="https://github.com/$GITHUB_REPOSITORY/releases/download/badline-$pkg_version" \
+            "$FORMULA"
+
+      # Writes the bottle block into this runner's copy of the formula and
+      # puts the bottle where `brew install` would download it to.
+      - name: Pour and test the bottle
+        run: |
+          brew uninstall --formula "$FORMULA"
+          brew bottle --merge --write --no-commit bottles/*.bottle.json
+          cp bottles/*.tar.gz "$(brew --cache --force-bottle "$FORMULA")"
+          brew install --force-bottle "$FORMULA"
+          brew test "$FORMULA"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bottles-${{ matrix.os }}
+          path: bottles/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878 # 2026.10.19.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up git
+        uses: Homebrew/actions/git-user-config@4790763c0a3ba4036f72634dc079c4a7dfcd4878 # 2026.10.19.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: bottles-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/bottles
+
+      - name: Write the bottle block
+        env:
+          TAP: ${{ steps.set-up-homebrew.outputs.repository-path }}
+        working-directory: ${{ runner.temp }}/bottles
+        run: |
+          git -C "$TAP" fetch origin main
+          git -C "$TAP" checkout --force -B main origin/main
+          formula_version=$(brew ruby -e "puts Formula['$FORMULA'].pkg_version")
+          bottle_version=$(jq -r 'first(.[].formula.pkg_version)' ./*.bottle.json | sort -u)
+          if [[ "$bottle_version" != "$formula_version" ]]
+          then
+            echo "::error::The bottles are for $bottle_version, but the formula on main is at $formula_version."
+            exit 1
+          fi
+          brew bottle --merge --write ./*.bottle.json
+
+      - name: Upload the bottles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ runner.temp }}/bottles
+        run: |
+          pkg_version=$(jq -r 'first(.[].formula.pkg_version)' ./*.bottle.json | sort -u)
+          tag="badline-$pkg_version"
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null
+          then
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target main \
+              --title "badline $pkg_version" --notes "Bottles for badline $pkg_version."
+          fi
+          mkdir upload
+          jq -r '.[].bottle.tags[] | "\(.local_filename)\t\(.filename)"' ./*.bottle.json |
+            while IFS=$'\t' read -r local_filename filename
+            do
+              cp "$local_filename" "upload/$filename"
+            done
+          gh release upload "$tag" upload/* --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Push the bottle commit
+        uses: Homebrew/actions/git-try-push@4790763c0a3ba4036f72634dc079c4a7dfcd4878 # 2026.10.19.1
+        with:
+          directory: ${{ steps.set-up-homebrew.outputs.repository-path }}
+          branch: main
